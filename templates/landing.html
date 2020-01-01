@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SoundSync</title>
+</head>
+<body>
+    <h1>SoundSync: Sync YT Audio across devices</h1>
+    <form name="create" action="" method="post" novalidate>
+        {{ create_form.hidden_tag() }}
+        <p>
+            {{ create_form.yt_url.label }}<br>
+            {{ create_form.yt_url(size=32) }}
+        </p>
+        <p>{{ create_form.submit() }}</p>
+    </form>
+
+    <form name="join" action="" method="post" novalidate>
+        {{ join_form.hidden_tag() }}
+        <p>
+            {{ join_form.sync_code.label }}<br>
+            {{ join_form.sync_code(size=32) }}
+        </p>
+        <p>{{ join_form.submit() }}</p>
+    </form>
+</body>
+</html>

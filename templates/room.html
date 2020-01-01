@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SoundSync</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js" integrity="sha256-bQmrZe4yPnQrLTY+1gYylfNMBuGfnT/HKsCGX+9Xuqo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+</head>
+<body>
+    <h1>SoundSync</h1>
+    <ul>
+        <li>Sync Code: {{ sync_code }}</li>
+        <li># of Devices: {{ num_devices }}</li>
+    </ul>
+    <form name="create" action="" method="post" novalidate>
+        {{ new_vid_form.hidden_tag() }}
+        <p>
+            {{ new_vid_form.yt_url.label }}<br>
+            {{ new_vid_form.yt_url(size=32) }}
+        </p>
+        <p>{{ new_vid_form.submit() }}</p>
+    </form>
+
+    <div id="player"></div>
+    <br>
+    <input id="playButton" type="submit" name="button" value="Play"/>
+
+    <script>
+
+        function getUrlVars() {
+            let vars = {};
+            let parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+                vars[key] = value;
+            });
+            return vars;
+        }
+
+        let tag = document.createElement('script');
+
+        tag.src = "https://www.youtube.com/iframe_api";
+        let firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        var socket = io();
+        let vid_id = null;
+        let sync_code = getUrlVars()["sc"];
+
+        socket.on('vid_id', function(json) {
+            vid_id = json['vid_id'];
+        });
+        socket.emit('get_vid_id', {'sync_code': sync_code});
+
+        socket.on('delayed_play', function(json){
+            console.log("delayed play", parseFloat(json['delay'])*1000);
+            setTimeout(playVideo, parseInt(json['delay'])*1000)
+        });
+        socket.on('ping_to', function () {
+            console.log("PONGGGGG");
+            socket.emit('pong_back', {'sync_code': sync_code});
+        });
+
+        let player;
+        function onYouTubeIframeAPIReady() {
+            function waitForVidID(){
+                if (typeof vid_id !== "undefined") {
+                    player = new YT.Player('player', {
+                      height: '390',
+                      width: '640',
+                      videoId: vid_id,
+                      events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                      }
+                    });
+                } else {
+                    setTimeout(waitForVidID, 250);
+                }
+            }
+            waitForVidID();
+        }
+
+        function onPlayerReady(event) {
+            function p() {
+                document.getElementById('playButton').onclick = function() {
+                   socket.emit('init_play', {"sync_code": sync_code});
+                };
+            }
+            setTimeout(p, 300);
+        }
+
+        function onPlayerStateChange(event) {
+//          if (event.data == YT.PlayerState.PLAYING && !done) {
+//              setTimeout(stopVideo, 6000);
+//              done = true;
+//          }
+        }
+
+        function playVideo() {
+            player.playVideo();
+        }
+
+        function stopVideo() {
+            player.stopVideo();
+        }
+
+    </script>
+</body>
+</html>
