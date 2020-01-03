@@ -126,19 +126,14 @@ def init_cmd(json):
         for i in range(BATCH_PING_SIZE):
             device.timestamps.append(time.time())
             emit("ping_to", {}, room=sid)
-
-    # for i in range(BATCH_PING_SIZE):
-    #     for sid, device in room.devices.items():
-    #         device.timestamps.append(time.time())
-    #         emit("ping_to", {}, room=sid)
     while not all([dev.ind == BATCH_PING_SIZE for dev in room.devices.values()]):
-        time.sleep(0.1)  # SLEEPS FOR 0.1s
+        time.sleep(0.001)  # SLEEPS FOR 0.1s
     max_latency = max([dev.latency for dev in room.devices.values()])
     org_ts = time.time()
     for sid, device in room.devices.items():
         loop_latency = time.time() - org_ts
         delay = max_latency + SYNCHRONIZATION_DELAY_CONST - device.latency - loop_latency
-        print(delay, max_latency, SYNCHRONIZATION_DELAY_CONST, device.latency, loop_latency)
+        # print(delay, max_latency, SYNCHRONIZATION_DELAY_CONST, device.latency, loop_latency)
         emit("delayed_cmd", {'cmd': cmd, 'delay': delay}, room=sid)
 
 

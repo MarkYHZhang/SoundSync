@@ -25,6 +25,7 @@
     <br>
     <input id="playButton" type="submit" name="button" value="Play"/>
     <input id="pauseButton" type="submit" name="button" value="Pause"/>
+    <input id="resetButton" type="submit" name="button" value="Reset"/>
 
     <script>
 
@@ -54,10 +55,14 @@
         socket.on('delayed_cmd', function(json){
             let cmd = json['cmd'];
             console.log(json);
+            let action = null
             if (cmd === "play")
-                setTimeout(playVideo, parseFloat(json['delay'])*1000);
+                action = playVideo;
             else if (cmd === "pause")
-                setTimeout(pauseVideo, parseFloat(json['delay'])*1000)
+                action = pauseVideo;
+            else if (cmd === "reset")
+                action = resetVideo;
+            setTimeout(action, parseFloat(json['delay'])*1000)
         });
         socket.on('ping_to', function () {
             console.log("PONGGGGG");
@@ -86,6 +91,7 @@
         }
 
         function onPlayerReady(event) {
+            player.playVideo();
             function p() {
                 document.getElementById('playButton').onclick = function() {
                    socket.emit('init_cmd', {"cmd":"play", "sync_code": sync_code});
@@ -93,15 +99,29 @@
                 document.getElementById('pauseButton').onclick = function() {
                    socket.emit('init_cmd', {"cmd":"pause", "sync_code": sync_code});
                 };
+                document.getElementById('resetButton').onclick = function() {
+                   socket.emit('init_cmd', {"cmd":"reset", "sync_code": sync_code});
+                };
             }
             setTimeout(p, 300);
         }
 
+        let first = true;
         function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING && first){
+                first = false;
+                pauseVideo();
+                player.seekTo(0);
+            }
 //          if (event.data == YT.PlayerState.PLAYING && !done) {
 //              setTimeout(stopVideo, 6000);
 //              done = true;
 //          }
+        }
+
+        function resetVideo() {
+            player.seekTo(0);
+            pauseVideo();
         }
 
         function playVideo() {
