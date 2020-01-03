@@ -24,6 +24,7 @@
     <div id="player"></div>
     <br>
     <input id="playButton" type="submit" name="button" value="Play"/>
+    <input id="pauseButton" type="submit" name="button" value="Pause"/>
 
     <script>
 
@@ -50,9 +51,13 @@
         });
         socket.emit('get_vid_id', {'sync_code': sync_code});
 
-        socket.on('delayed_play', function(json){
-            console.log("delayed play", parseFloat(json['delay'])*1000);
-            setTimeout(playVideo, parseInt(json['delay'])*1000)
+        socket.on('delayed_cmd', function(json){
+            let cmd = json['cmd'];
+            console.log(json);
+            if (cmd === "play")
+                setTimeout(playVideo, parseFloat(json['delay'])*1000);
+            else if (cmd === "pause")
+                setTimeout(pauseVideo, parseFloat(json['delay'])*1000)
         });
         socket.on('ping_to', function () {
             console.log("PONGGGGG");
@@ -62,7 +67,7 @@
         let player;
         function onYouTubeIframeAPIReady() {
             function waitForVidID(){
-                if (typeof vid_id !== "undefined") {
+                if (typeof vid_id !== "undefined" && vid_id != null) {
                     player = new YT.Player('player', {
                       height: '390',
                       width: '640',
@@ -72,6 +77,7 @@
                         'onStateChange': onPlayerStateChange
                       }
                     });
+                    console.log(vid_id);
                 } else {
                     setTimeout(waitForVidID, 250);
                 }
@@ -82,7 +88,10 @@
         function onPlayerReady(event) {
             function p() {
                 document.getElementById('playButton').onclick = function() {
-                   socket.emit('init_play', {"sync_code": sync_code});
+                   socket.emit('init_cmd', {"cmd":"play", "sync_code": sync_code});
+                };
+                document.getElementById('pauseButton').onclick = function() {
+                   socket.emit('init_cmd', {"cmd":"pause", "sync_code": sync_code});
                 };
             }
             setTimeout(p, 300);
@@ -97,6 +106,10 @@
 
         function playVideo() {
             player.playVideo();
+        }
+
+        function pauseVideo() {
+            player.pauseVideo();
         }
 
         function stopVideo() {

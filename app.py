@@ -59,7 +59,6 @@ rooms = {}
 
 @app.route('/', methods=['GET', 'POST'])
 def landing():
-    print(request.data)
     create_form = CreateForm()
     join_form = JoinForm()
     if create_form.validate_on_submit():
@@ -115,17 +114,23 @@ def get_vid_id(json):
     rooms[sync_code].add_device(Device(request.sid))
 
 
-@socketio.on('init_play')
-def init_play(json):
+@socketio.on('init_cmd')
+def init_cmd(json):
     sync_code = json['sync_code']
+    cmd = json['cmd']
     room = rooms[sync_code]
-    print("init_play", online_devices)
     room.devices = {sid: dev for sid, dev in room.devices.items() if sid in online_devices}
     for sid, device in room.devices.items():
         device.timestamps = []
+        device.ind = 0
         for i in range(BATCH_PING_SIZE):
             device.timestamps.append(time.time())
             emit("ping_to", {}, room=sid)
+
+    # for i in range(BATCH_PING_SIZE):
+    #     for sid, device in room.devices.items():
+    #         device.timestamps.append(time.time())
+    #         emit("ping_to", {}, room=sid)
     while not all([dev.ind == BATCH_PING_SIZE for dev in room.devices.values()]):
         time.sleep(0.1)  # SLEEPS FOR 0.1s
     max_latency = max([dev.latency for dev in room.devices.values()])
@@ -134,7 +139,7 @@ def init_play(json):
         loop_latency = time.time() - org_ts
         delay = max_latency + SYNCHRONIZATION_DELAY_CONST - device.latency - loop_latency
         print(delay, max_latency, SYNCHRONIZATION_DELAY_CONST, device.latency, loop_latency)
-        emit("delayed_play", {'delay': delay}, room=sid)
+        emit("delayed_cmd", {'cmd': cmd, 'delay': delay}, room=sid)
 
 
 @socketio.on('pong_back')
@@ -145,7 +150,6 @@ def pong_back(json):
     cur_latency = (time.time() - device.timestamps[device.ind]) / 2
     device.latency = (device.latency * device.ind + cur_latency) / (device.ind + 1)
     device.ind += 1
-    print(device.ind)
 
 
 if __name__ == '__main__':
